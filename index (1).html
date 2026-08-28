@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caça ao Tesouro</title>
+<style>
+  :root {
+    --bg: #0f0b08;
+    --panel: #1c140f;
+    --wall: #4a3728;
+    --wall-dark: #362819;
+    --floor: #241a13;
+    --floor-alt: #2a1f16;
+    --trap: #7a1f2b;
+    --treasure: #e8b34a;
+    --treasure-dark: #b9862c;
+    --text: #f2e6d3;
+    --muted: #a88f6e;
+    --heart-full: #d1495b;
+    --heart-empty: #4a3728;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(232, 179, 74, 0.05), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(232, 179, 74, 0.04), transparent 45%);
+    color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px;
+  }
+
+  .game {
+    width: 100%;
+    max-width: 620px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .eyebrow {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--treasure);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 34px;
+    font-weight: 400;
+    margin: 6px 0 4px;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+
+  .subtitle {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 20px;
+    text-align: center;
+  }
+
+  .hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+
+  .hud .level-tag {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .hearts {
+    display: flex;
+    gap: 4px;
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .heart {
+    color: var(--heart-empty);
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+
+  .heart.filled {
+    color: var(--heart-full);
+  }
+
+  .heart.pulse {
+    animation: pulse 0.35s ease;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+
+  .board-wrap {
+    position: relative;
+    border: 3px solid var(--wall-dark);
+    border-radius: 10px;
+    background: var(--floor);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  .player {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff2cf, var(--treasure) 55%, var(--treasure-dark) 100%);
+    box-shadow: 0 0 14px rgba(232, 179, 74, 0.7), 0 0 2px rgba(0,0,0,0.5);
+    transition: left 0.11s linear, top 0.11s linear;
+    z-index: 5;
+  }
+
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(200, 40, 50, 0);
+    pointer-events: none;
+    z-index: 10;
+    transition: background 0.08s ease;
+  }
+
+  .flash.hit {
+    background: rgba(200, 40, 50, 0.35);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 7, 5, 0.88);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 20;
+    padding: 20px;
+  }
+
+  .overlay.show {
+    display: flex;
+  }
+
+  .overlay h2 {
+    font-size: 26px;
+    font-weight: 400;
+    margin: 0 0 8px;
+    color: var(--treasure);
+  }
+
+  .overlay p {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 22px;
+    max-width: 320px;
+  }
+
+  .overlay button {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--treasure);
+    color: #241a13;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 26px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .overlay button:hover {
+    background: #f4c563;
+  }
+
+  .overlay button:active {
+    transform: scale(0.96);
+  }
+
+  .controls-hint {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 18px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .controls-hint kbd {
+    background: var(--panel);
+    border: 1px solid var(--wall);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .dpad {
+    display: none;
+    grid-template-columns: repeat(3, 48px);
+    grid-template-rows: repeat(2, 48px);
+    gap: 6px;
+    margin-top: 18px;
+    justify-content: center;
+  }
+
+  .dpad button {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--panel);
+    border: 1px solid var(--wall);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .dpad button:active {
+    background: var(--wall);
+  }
+
+  #dpadUp { grid-column: 2; grid-row: 1; }
+  #dpadLeft { grid-column: 1; grid-row: 2; }
+  #dpadDown { grid-column: 2; grid-row: 2; }
+  #dpadRight { grid-column: 3; grid-row: 2; }
+
+  @media (max-width: 480px) {
+    .dpad { display: grid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <div class="eyebrow">Masmorra esquecida</div>
+  <h1>Caça ao Tesouro</h1>
+  <p class="subtitle">Chegue até o tesouro sem esbarrar nas paredes e sem cair nas armadilhas.</p>
+
+  <div class="hud">
+    <div class="level-tag" id="levelTag">Fase 1 de 3</div>
+    <div class="hearts" id="hearts"></div>
+  </div>
+
+  <div class="board-wrap" id="boardWrap">
+    <canvas id="board"></canvas>
+    <div class="player" id="player"></div>
+    <div class="flash" id="flash"></div>
+
+    <div class="overlay" id="overlayLevelComplete">
+      <h2>Fase concluída!</h2>
+      <p id="levelCompleteText">Você encontrou o tesouro.</p>
+      <button id="btnNextLevel">Próxima fase</button>
+    </div>
+
+    <div class="overlay" id="overlayGameOver">
+      <h2>Fim de jogo</h2>
+      <p>Suas vidas acabaram antes de encontrar o tesouro.</p>
+      <button id="btnRestart">Tentar novamente</button>
+    </div>
+
+    <div class="overlay" id="overlayVictory">
+      <h2>Tesouro conquistado!</h2>
+      <p>Você completou todas as fases da masmorra.</p>
+      <button id="btnRestartVictory">Jogar novamente</button>
+    </div>
+  </div>
+
+  <div class="controls-hint">
+    Mova-se com <kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>&larr;</kbd> <kbd>&rarr;</kbd> ou <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
+  </div>
+
+  <div class="dpad">
+    <button id="dpadUp">&uarr;</button>
+    <button id="dpadLeft">&larr;</button>
+    <button id="dpadDown">&darr;</button>
+    <button id="dpadRight">&rarr;</button>
+  </div>
+</div>
+
+<script>
+  // ---------- Definição das fases ----------
+  // '#' parede | '.' chão | 'X' armadilha | 'S' início | 'T' tesouro
+  const LEVELS = [
+    {
+      nome: "Fase 1 — Entrada da masmorra",
+      grid: [
+        "############",
+        "#S....#....#",
+        "#.##..#.##.#",
+        "#....X..#..#",
+        "#.####.##..#",
+        "#..........#",
+        "#.####.##.T#",
+        "############",
+      ],
+    },
+    {
+      nome: "Fase 2 — Corredores profundos",
+      grid: [
+        "##############",
+        "#S...#...#...#",
+        "#.##.#.#.#.#.#",
+        "#..X.#.#...#.#",
+        "#.##.#.###.#.#",
+        "#....#.....#.#",
+        "#.####.###.#.#",
+        "#.........X.T#",
+        "##############",
+      ],
+    },
+    {
+      nome: "Fase 3 — Câmara do tesouro",
+      grid: [
+        "##############",
+        "#S...#.....#.#",
+        "#.##.#.###.#.#",
+        "#.#..X....#..#",
+        "#.#.####.##..#",
+        "#.......#....#",
+        "#.#####.##.#.#",
+        "#.....X.....X#",
+        "#...........T#",
+        "##############",
+      ],
+    },
+  ];
+
+  const TILE = 40;
+  const MAX_LIVES = 3;
+
+  let levelIndex = 0;
+  let lives = MAX_LIVES;
+  let tiles = [];
+  let player = { row: 0, col: 0 };
+  let treasure = { row: 0, col: 0 };
+  let busy = false; // trava input durante overlays
+
+  const boardWrap = document.getElementById("boardWrap");
+  const canvas = document.getElementById("board");
+  const ctx = canvas.getContext("2d");
+  const playerEl = document.getElementById("player");
+  const flashEl = document.getElementById("flash");
+  const heartsEl = document.getElementById("hearts");
+  const levelTagEl = document.getElementById("levelTag");
+
+  const overlayLevelComplete = document.getElementById("overlayLevelComplete");
+  const overlayGameOver = document.getElementById("overlayGameOver");
+  const overlayVictory = document.getElementById("overlayVictory");
+  const levelCompleteText = document.getElementById("levelCompleteText");
+
+  function carregarFase(indice) {
+    const fase = LEVELS[indice];
+    tiles = fase.grid.map(linha => linha.split(""));
+
+    for (let r = 0; r < tiles.length; r++) {
+      for (let c = 0; c < tiles[r].length; c++) {
+        if (tiles[r][c] === "S") {
+          player = { row: r, col: c };
+          tiles[r][c] = ".";
+        } else if (tiles[r][c] === "T") {
+          treasure = { row: r, col: c };
+        }
+      }
+    }
+
+    const cols = tiles[0].length;
+    const rows = tiles.length;
+    canvas.width = cols * TILE;
+    canvas.height = rows * TILE;
+    boardWrap.style.width = canvas.width + "px";
+    boardWrap.style.height = canvas.height + "px";
+
+    playerEl.style.width = TILE * 0.6 + "px";
+    playerEl.style.height = TILE * 0.6 + "px";
+
+    levelTagEl.textContent = `Fase ${indice + 1} de ${LEVELS.length} — ${fase.nome.split("— ")[1] || ""}`;
+
+    desenharTabuleiro();
+    posicionarJogador(true);
+  }
+
+  function desenharTabuleiro() {
+    for (let r = 0; r < tiles.length; r++) {
+      for (let c = 0; c < tiles[r].length; c++) {
+        desenharCelula(r, c);
+      }
+    }
+  }
+
+  function desenharCelula(r, c) {
+    const x = c * TILE;
+    const y = r * TILE;
+    const tipo = tiles[r][c];
+    const ehTesouro = r === treasure.row && c === treasure.col;
+
+    if (tipo === "#") {
+      ctx.fillStyle = getVar("--wall");
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.strokeStyle = getVar("--wall-dark");
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
+      // textura leve de "tijolos"
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.fillRect(x, y + TILE / 2 - 1, TILE, 2);
+    } else {
+      // piso (com leve efeito xadrez)
+      const claro = (r + c) % 2 === 0;
+      ctx.fillStyle = claro ? getVar("--floor") : getVar("--floor-alt");
+      ctx.fillRect(x, y, TILE, TILE);
+
+      if (ehTesouro) {
+        desenharTesouro(x, y);
+      } else if (tipo === "X") {
+        desenharArmadilha(x, y);
+      }
+    }
+  }
+
+  function desenharArmadilha(x, y) {
+    const cx = x + TILE / 2;
+    const cy = y + TILE / 2;
+    ctx.strokeStyle = getVar("--trap");
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    const off = TILE * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(cx - off, cy - off);
+    ctx.lineTo(cx + off, cy + off);
+    ctx.moveTo(cx + off, cy - off);
+    ctx.lineTo(cx - off, cy + off);
+    ctx.stroke();
+  }
+
+  function desenharTesouro(x, y) {
+    const cx = x + TILE / 2;
+    const cy = y + TILE / 2;
+    const w = TILE * 0.6;
+    const h = TILE * 0.42;
+
+    // baú
+    ctx.fillStyle = "#7a4a26";
+    ctx.fillRect(cx - w / 2, cy - h / 4, w, h / 2 + 2);
+    ctx.fillStyle = getVar("--treasure");
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2, cy - h / 4);
+    ctx.quadraticCurveTo(cx, cy - h, cx + w / 2, cy - h / 4);
+    ctx.lineTo(cx + w / 2, cy - h / 4 + 4);
+    ctx.quadraticCurveTo(cx, cy - h + 4, cx - w / 2, cy - h / 4 + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = getVar("--treasure-dark");
+    ctx.fillRect(cx - 3, cy - h / 4, 6, h / 2 + 2);
+
+    // brilho
+    ctx.fillStyle = "rgba(232, 179, 74, 0.5)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, TILE * 0.42, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.18;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  function getVar(nome) {
+    return getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  }
+
+  function posicionarJogador(instantaneo) {
+    const x = player.col * TILE + TILE * 0.2;
+    const y = player.row * TILE + TILE * 0.2;
+
+    if (instantaneo) {
+      playerEl.style.transition = "none";
+      playerEl.style.left = x + "px";
+      playerEl.style.top = y + "px";
+      // força reflow antes de reativar a transição
+      void playerEl.offsetWidth;
+      playerEl.style.transition = "";
+    } else {
+      playerEl.style.left = x + "px";
+      playerEl.style.top = y + "px";
+    }
+  }
+
+  function atualizarVidas() {
+    heartsEl.innerHTML = "";
+    for (let i = 0; i < MAX_LIVES; i++) {
+      const span = document.createElement("span");
+      span.className = "heart" + (i < lives ? " filled" : "");
+      span.textContent = "♥";
+      heartsEl.appendChild(span);
+    }
+  }
+
+  function pulsarUltimoCoracaoPerdido() {
+    const coracoes = heartsEl.querySelectorAll(".heart");
+    const alvo = coracoes[lives];
+    if (alvo) {
+      alvo.classList.add("pulse");
+      setTimeout(() => alvo.classList.remove("pulse"), 350);
+    }
+  }
+
+  function mover(dr, dc) {
+    if (busy) return;
+
+    const novaLinha = player.row + dr;
+    const novaColuna = player.col + dc;
+
+    if (
+      novaLinha < 0 || novaLinha >= tiles.length ||
+      novaColuna < 0 || novaColuna >= tiles[0].length
+    ) {
+      return;
+    }
+
+    const destino = tiles[novaLinha][novaColuna];
+
+    if (destino === "#") {
+      // esbarrou na parede: pequeno feedback, mas não se move
+      boardWrap.animate(
+        [{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" }],
+        { duration: 150 }
+      );
+      return;
+    }
+
+    player.row = novaLinha;
+    player.col = novaColuna;
+    posicionarJogador(false);
+
+    const ehTesouro = novaLinha === treasure.row && novaColuna === treasure.col;
+
+    if (destino === "X") {
+      tiles[novaLinha][novaColuna] = "."; // armadilha é consumida
+      perderVida();
+      desenharCelula(novaLinha, novaColuna);
+    }
+
+    if (ehTesouro) {
+      setTimeout(concluirFase, 120);
+    }
+  }
+
+  function perderVida() {
+    lives -= 1;
+    atualizarVidas();
+    pulsarUltimoCoracaoPerdido();
+
+    flashEl.classList.add("hit");
+    setTimeout(() => flashEl.classList.remove("hit"), 140);
+
+    if (lives <= 0) {
+      busy = true;
+      setTimeout(() => {
+        overlayGameOver.classList.add("show");
+      }, 200);
+    }
+  }
+
+  function concluirFase() {
+    busy = true;
+    if (levelIndex >= LEVELS.length - 1) {
+      overlayVictory.classList.add("show");
+    } else {
+      levelCompleteText.textContent = `Você encontrou o tesouro da ${LEVELS[levelIndex].nome.split("— ")[1] || "fase"}.`;
+      overlayLevelComplete.classList.add("show");
+    }
+  }
+
+  function proximaFase() {
+    overlayLevelComplete.classList.remove("show");
+    levelIndex += 1;
+    busy = false;
+    carregarFase(levelIndex);
+  }
+
+  function reiniciarJogo() {
+    overlayGameOver.classList.remove("show");
+    overlayVictory.classList.remove("show");
+    levelIndex = 0;
+    lives = MAX_LIVES;
+    busy = false;
+    atualizarVidas();
+    carregarFase(levelIndex);
+  }
+
+  // ---------- Controles ----------
+  window.addEventListener("keydown", (e) => {
+    const teclas = {
+      ArrowUp: [-1, 0], w: [-1, 0], W: [-1, 0],
+      ArrowDown: [1, 0], s: [1, 0], S: [1, 0],
+      ArrowLeft: [0, -1], a: [0, -1], A: [0, -1],
+      ArrowRight: [0, 1], d: [0, 1], D: [0, 1],
+    };
+
+    if (teclas[e.key]) {
+      e.preventDefault();
+      const [dr, dc] = teclas[e.key];
+      mover(dr, dc);
+    }
+  });
+
+  document.getElementById("dpadUp").addEventListener("click", () => mover(-1, 0));
+  document.getElementById("dpadDown").addEventListener("click", () => mover(1, 0));
+  document.getElementById("dpadLeft").addEventListener("click", () => mover(0, -1));
+  document.getElementById("dpadRight").addEventListener("click", () => mover(0, 1));
+
+  document.getElementById("btnNextLevel").addEventListener("click", proximaFase);
+  document.getElementById("btnRestart").addEventListener("click", reiniciarJogo);
+  document.getElementById("btnRestartVictory").addEventListener("click", reiniciarJogo);
+
+  // ---------- Início ----------
+  atualizarVidas();
+  carregarFase(levelIndex);
+</script>
+
+</body>
+</html>
