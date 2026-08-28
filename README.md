@@ -41,7 +41,6 @@ Símbolo	Significado:
 X	Armadilha;
 S	Posição inicial do jogador;
 T	Tesouro (objetivo da fase);
-# Parede
 
 Principais funções:
 
