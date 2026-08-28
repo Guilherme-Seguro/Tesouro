@@ -40,7 +40,8 @@ Símbolo	Significado:
 .	Chão;
 X	Armadilha;
 S	Posição inicial do jogador;
-T	Tesouro (objetivo da fase).
+T	Tesouro (objetivo da fase);
+# Parede
 
 Principais funções:
 
