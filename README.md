@@ -37,7 +37,6 @@ Estrutura do código:
 Cada fase é representada por uma matriz de caracteres, onde cada símbolo define o tipo de célula:
 
 Símbolo	Significado:
-#	Parede;
 .	Chão;
 X	Armadilha;
 S	Posição inicial do jogador;
