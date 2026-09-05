@@ -1,6 +1,6 @@
 Caça ao Tesouro
 
-Jogo simples desenvolvido em HTML, CSS e JavaScript puro (com renderização em <canvas>): o jogador precisa atravessar uma masmorra e alcançar o tesouro, desviando de paredes e armadilhas, com um sistema de vidas.
+Jogo simples desenvolvido em HTML, CSS e JavaScript: o jogador precisa atravessar uma masmorra e alcançar o tesouro, desviando de paredes e armadilhas, com um sistema de vidas.
 
 Objetivo:
 
